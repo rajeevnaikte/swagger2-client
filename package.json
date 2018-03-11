@@ -11,5 +11,22 @@
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-preset-env": "^1.6.1"
-  }
+  },
+  "scripts": {
+    "test": "echo \"swagger2-client\" && exit 0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rajeevnaikte/swagger2-client.git"
+  },
+  "keywords": [
+    "swagger",
+    "swagger2",
+    "rest",
+    "client"
+  ],
+  "bugs": {
+    "url": "https://github.com/rajeevnaikte/swagger2-client/issues"
+  },
+  "homepage": "https://github.com/rajeevnaikte/swagger2-client#readme"
 }
