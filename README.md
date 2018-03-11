@@ -3,6 +3,8 @@ Auto generate Rest client APIs
 
 # Usage
 ```
+import Swagger2Client from 'rn-swagger2-client'
+
 let myRestApis = Swagger2Client('http://127.0.0.1:8888/v2/api-docs', {
       crossDomain: true,
       beforeSend: function (xhr) {
