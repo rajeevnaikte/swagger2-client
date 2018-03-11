@@ -57,9 +57,12 @@ let setDefRefs = (swagger) => {
       let schema = swagger.paths[path][method];
       if (schema.parameters) {
         for (let param of schema.parameters) {
-          if (param.schema && param.schema.$ref) {
-            param.schema = getDefinition(swagger, param.schema.$ref);
-          }
+		  if (param.in === 'body') {
+		  	param.name = 'body';
+		  }
+		  if (param.schema && param.schema.$ref) {
+			param.schema = getDefinition(swagger, param.schema.$ref);
+		  }
         }
       }
     }
