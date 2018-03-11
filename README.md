@@ -2,6 +2,7 @@
 Auto generate Rest client APIs
 
 # Usage
+The API name will be 'operationId' of the path in swagger json.
 ```
 import Swagger2Client from 'rn-swagger2-client'
 
