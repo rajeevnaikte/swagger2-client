@@ -1,5 +1,5 @@
 {
-  "name": "swagger2-client",
+  "name": "rn-swagger2-client",
   "version": "1.0.0",
   "description": "Generate client API from Swagger2 documentation",
   "main": "index.js",
