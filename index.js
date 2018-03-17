@@ -17,22 +17,22 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var requiresNotNull = function requiresNotNull(data, key) {
-  if (data == null) throw key + ' cannot be null';
+  if (data == null) throw Error(key + ' cannot be null');
 };
 
 var verifyDataType = function verifyDataType(data, type, key) {
   if (type === 'array') {
     if (Object.prototype.toString.call(data) !== '[object Array]') {
-      throw 'Invalid type for ' + key + '. Expecting ' + type + '.';
+      throw Error('Invalid type for ' + key + '. Expecting ' + type + '.');
     }
   } else if ((typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== type) {
-    throw 'Invalid type for ' + key + '. Expecting ' + type + '.';
+    throw Error('Invalid type for ' + key + '. Expecting ' + type + '.');
   }
 };
 
 var verifyRequiredField = function verifyRequiredField(data, field) {
   if (!data.hasOwnProperty(field)) {
-    throw 'Required field ' + field + ' is not provided.';
+    throw Error('Required field ' + field + ' is not provided.');
   }
 };
 
@@ -189,7 +189,7 @@ var RestClient = function () {
             var param = _step4.value;
 
             if (param.in === 'body') {
-              if (param.schema) {
+              if (param.schema || param.type === 'object') {
                 options.data = JSON.stringify(data[param.name]);
                 options.contentType = 'application/json';
               }
@@ -299,14 +299,62 @@ var RestClient = function () {
       }
     }
   }, {
+    key: 'addToStore',
+    value: function addToStore(input, output) {
+      if (!this.schema.parameters) {
+        this.store = output;
+      } else {
+        if (!this.store) {
+          this.store = {};
+        }
+        this.store[JSON.stringify(input)] = output;
+      }
+    }
+  }, {
+    key: 'getFromStore',
+    value: function getFromStore(input) {
+      if (!this.schema.parameters) {
+        return this.store;
+      }
+      if (this.store) {
+        return this.store[JSON.stringify(input)];
+      }
+    }
+  }, {
     key: 'call',
-    value: function call(data) {
-      this.validateParameters(data);
-      var options = Object.assign({}, this.ajaxOpts);
-      options.url = this.urlPrefix + this.getPath(data);
-      options.type = this.method;
-      this.setRequestBody(options, data);
-      return $.ajax(options);
+    value: function call(data, validate, enableCache) {
+      var _this = this;
+
+      var cache = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
+
+      return new Promise(function (resolve, reject) {
+        if (enableCache && cache) {
+          var output = _this.getFromStore(data);
+          if (output) {
+            setTimeout(resolve, 0, output);
+            return;
+          }
+        }
+        try {
+          if (validate) {
+            _this.validateParameters(data);
+          }
+          var options = Object.assign({}, _this.ajaxOpts);
+          options.url = _this.urlPrefix + _this.getPath(data);
+          options.type = _this.method;
+          _this.setRequestBody(options, data);
+          $.ajax(options).done(function (res) {
+            if (enableCache) {
+              _this.addToStore(data, res);
+            }
+            resolve(res);
+          }).fail(function (jqXHR, textStatus, errorThrown) {
+            reject(new Error(textStatus));
+          });
+        } catch (e) {
+          reject(e);
+        }
+      });
     }
   }]);
 
@@ -314,6 +362,9 @@ var RestClient = function () {
 }();
 
 var Swagger2Client = function Swagger2Client(swaggerUrl, ajaxOpts, urlPrefix) {
+  var validate = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
+  var enableCache = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : false;
+
   requiresNotNull(swaggerUrl);
   urlPrefix = urlPrefix || '';
   ajaxOpts = ajaxOpts || {};
@@ -331,8 +382,8 @@ var Swagger2Client = function Swagger2Client(swaggerUrl, ajaxOpts, urlPrefix) {
       var _loop = function _loop(method) {
         var schema = pathSchema[method];
         var client = new RestClient(ajaxOpts, urlPrefix, path, method, schema);
-        apis[schema.operationId] = function (data) {
-          return client.call(data);
+        apis[schema.operationId] = function (data, fromCacheIfExists) {
+          return client.call(data, validate, enableCache, fromCacheIfExists);
         };
       };
 
@@ -341,8 +392,7 @@ var Swagger2Client = function Swagger2Client(swaggerUrl, ajaxOpts, urlPrefix) {
       }
     }
   }).fail(function (jqXHR, textStatus, errorThrown) {
-    console.log(textStatus);
-    throw 'Unable to get swagger json from ' + swaggerUrl + '.';
+    throw Error('Unable to get swagger json from ' + swaggerUrl + '.');
   });
   return apis;
 };

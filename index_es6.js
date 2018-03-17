@@ -2,23 +2,23 @@ import * as $ from 'jquery'
 
 let requiresNotNull = (data, key) => {
   if (data == null)
-    throw `${key} cannot be null`;
+    throw Error(`${key} cannot be null`);
 }
 
 let verifyDataType = (data, type, key) => {
   if (type === 'array') {
     if (Object.prototype.toString.call(data) !== '[object Array]') {
-      throw `Invalid type for ${key}. Expecting ${type}.`;
+      throw Error(`Invalid type for ${key}. Expecting ${type}.`);
     }
   }
   else if (typeof data !== type) {
-    throw `Invalid type for ${key}. Expecting ${type}.`;
+    throw Error(`Invalid type for ${key}. Expecting ${type}.`);
   }
 }
 
 let verifyRequiredField = (data, field) => {
   if (!data.hasOwnProperty(field)) {
-    throw `Required field ${field} is not provided.`;
+    throw Error(`Required field ${field} is not provided.`);
   }
 }
 
@@ -101,7 +101,7 @@ class RestClient {
     if (this.schema.parameters) {
       for (let param of this.schema.parameters) {
         if (param.in === 'body') {
-          if (param.schema) {
+          if (param.schema || param.type === 'object') {
             options.data = JSON.stringify(data[param.name]);
             options.contentType = 'application/json';
           }
@@ -152,18 +152,63 @@ class RestClient {
       }
     }
   }
+    
+	addToStore(input, output) {
+		if (!this.schema.parameters) {
+			this.store = output;
+		}
+		else {
+			if (!this.store) {
+				this.store = {};
+			}
+			this.store[JSON.stringify(input)] = output;
+		}
+	}
+	
+	getFromStore(input) {
+		if (!this.schema.parameters) {
+			return this.store;
+		}
+		if (this.store) {
+			return this.store[JSON.stringify(input)];
+		}
+	}
 
-  call(data) {
-    this.validateParameters(data);
-    let options = Object.assign({}, this.ajaxOpts);
-    options.url = this.urlPrefix + this.getPath(data);
-    options.type = this.method;
-    this.setRequestBody(options, data);
-    return $.ajax(options);
-  }
+	call(data, validate, enableCache, cache=false) {
+		return new Promise((resolve, reject) => {
+			if (enableCache && cache) {
+				let output = this.getFromStore(data);
+				if (output) {
+					setTimeout(resolve, 0, output);
+					return;
+				}
+			}
+			try {
+				if (validate) {
+					this.validateParameters(data);
+				}
+				let options = Object.assign({}, this.ajaxOpts);
+				options.url = this.urlPrefix + this.getPath(data);
+				options.type = this.method;
+				this.setRequestBody(options, data);
+				$.ajax(options)
+					.done((res) => {
+						if (enableCache) {
+							this.addToStore(data, res);
+						}
+						resolve(res);
+					})
+					.fail((jqXHR, textStatus, errorThrown) => {
+						reject(new Error(textStatus));
+					});
+			} catch (e) {
+				reject(e);
+			}
+		});
+	}
 }
 
-const Swagger2Client = (swaggerUrl, ajaxOpts, urlPrefix) => {
+const Swagger2Client = (swaggerUrl, ajaxOpts, urlPrefix, validate=true, enableCache=false) => {
   requiresNotNull(swaggerUrl);
   urlPrefix = urlPrefix || '';
   ajaxOpts = ajaxOpts || {};
@@ -181,15 +226,14 @@ const Swagger2Client = (swaggerUrl, ajaxOpts, urlPrefix) => {
       for (let method in pathSchema) {
         let schema = pathSchema[method];
         let client = new RestClient(ajaxOpts, urlPrefix, path, method, schema);
-        apis[schema.operationId] = (data) => {
-          return client.call(data);
+        apis[schema.operationId] = (data, fromCacheIfExists) => {
+          return client.call(data, validate, enableCache, fromCacheIfExists);
         };
       }
     }
   })
   .fail((jqXHR, textStatus, errorThrown) => {
-    console.log(textStatus);
-	throw `Unable to get swagger json from ${swaggerUrl}.`;
+	throw Error(`Unable to get swagger json from ${swaggerUrl}.`);
   });
   return apis;
 }

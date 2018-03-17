@@ -13,7 +13,8 @@
     "babel-preset-env": "^1.6.1"
   },
   "scripts": {
-    "test": "echo \"swagger2-client\" && exit 0"
+    "test": "echo \"swagger2-client\" && exit 0",
+    "build": "babel index_es6.js --out-file index.js"
   },
   "repository": {
     "type": "git",
