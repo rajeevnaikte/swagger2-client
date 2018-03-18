@@ -6,12 +6,16 @@ The API name will be 'operationId' of the path in swagger json.
 ```
 import Swagger2Client from 'rn-swagger2-client'
 
-let myRestApis = Swagger2Client('http://127.0.0.1:8888/v2/api-docs', {
+let swaggerJsonUrl = 'http://127.0.0.1:8888/v2/api-docs';
+let ajaxOptions = {
       crossDomain: true,
       beforeSend: function (xhr) {
         xhr.setRequestHeader("Authorization", "Basic " + window.btoa('rajeevn:root'));
       }
-    }, 'http://localhost:8888');
+    };
+let urlPrefixForPath = 'http://localhost:8888';
+
+let myRestApis = Swagger2Client(swaggerJsonUrl, ajaxOptions, urlPrefixForPath);
 
 // for Rest path - /pet/details/{petId} - it will return a Promise
 myRestApis.petDetailsUsingGET({ petId: 1234 })
