@@ -251,7 +251,13 @@ var RestClient = function () {
               verifyDataType(propData, propSchema.type, prop);
             }
             if (propSchema.additionalProperties) {
-              this.validateDefinition(propData, propSchema.additionalProperties);
+              if (propSchema.additionalProperties.type === 'object') {
+                this.validateDefinition(propData, propSchema.additionalProperties);
+              } else {
+                for (var propDataKey in propData) {
+                  verifyDataType(propData[propDataKey], propSchema.additionalProperties.type);
+                }
+              }
             }
           }
         }

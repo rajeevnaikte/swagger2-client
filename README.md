@@ -17,6 +17,7 @@ let urlPrefixForPath = 'http://localhost:8888';
 
 let myRestApis = Swagger2Client(swaggerJsonUrl, ajaxOptions, urlPrefixForPath);
 
+// input format will be - {pathVar1: val, queryParam1: paramVal, body: bodyObject}
 // for Rest path - /pet/details/{petId} - it will return a Promise
 myRestApis.petDetailsUsingGET({ petId: 1234 })
             .then((res) => console.log(res))
